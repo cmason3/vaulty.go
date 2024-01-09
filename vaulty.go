@@ -167,7 +167,7 @@ func main() {
             if len(prkey) > 0 {
               var err error
               if prkey, err = decrypt(prkey, password); err != nil {
-                fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Unable to Decrypt Private Key\033[0m\n")
+                fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Decrypt Private Key\033[0m\n")
                 os.Exit(0)
               }
             }
@@ -300,7 +300,7 @@ func main() {
                     if len(prkey) > 0 {
                       var err error
                       if prkey, err = decrypt(prkey, password); err != nil {
-                        fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Unable to Decrypt Key File\033[0m\n")
+                        fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Decrypt Key File\033[0m\n")
                         os.Exit(0)
                       }
                     }
