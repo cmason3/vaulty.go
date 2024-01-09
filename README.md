@@ -39,7 +39,7 @@ vaulty keygen vaulty.key
   $VAULTY;ARqtIXUoc7Qi2aip88u7SjrjJQMUGec1zwAAAABM37u0hj31foETHau8vgUQZbfm13ln76nQ
   uarFlWYXgtZolkJdDtTV7FLIui+eNjc=
 
-echo "Hello World" | vaulty encrypt -r &lt;Public ID&gt;
+echo "Hello World" | vaulty encrypt -r <Public ID>
   $VAULTY;8SA7mU2Uqe4c/506CZmnbfT6el81nTSLnbPOV4DEk9Lwe8jqtB8UKnScUYojlw5MHtR2R1lF
   p7hj0z80fU8Fjw2ZkESXuQUHYSEV9y4=
 
