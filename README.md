@@ -35,8 +35,8 @@ With symmetric encryption the challenge is securely exchanging the password/key,
 
 ```
 vaulty keygen vaulty.key
-  // Public ID: pzeqacudvrxyc79qgmdw47lq3vtghjnraz59pkqm8lxf7vs0xexsr3a7nx
-  $VAULTY;ARqtIXUoc7Qi2aip88u7SjrjJQMUGec1zwAAAABM37u0hj31foETHau8vgUQZbfm13ln76nQ
+  // Public ID: vltypzeqacudvrxyc79qgmdw47lq3vtghjnraz59pkqm8lxf7vs0xexsr3a7nx
+  $VPK;ARqtIXUoc7Qi2aip88u7SjrjJQMUGec1zwAAAABM37u0hj31foETHau8vgUQZbfm13ln76nQ
   uarFlWYXgtZolkJdDtTV7FLIui+eNjc=
 
 echo "Hello World" | vaulty encrypt -r <Public ID>

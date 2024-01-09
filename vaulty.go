@@ -36,10 +36,11 @@ import (
   "golang.org/x/crypto/chacha20poly1305"
 )
 
-var Version = "1.0.0"
+var Version = "2.0.0"
 
 const (
   vaultyPrefix = "$VAULTY;"
+  vaultyKeyPrefix = "$VPK;"
   x25519Overhead = 1 + saltSize + curve25519.ScalarSize
   standardOverhead = 1 + saltSize + chacha20poly1305.NonceSize
   saltSize = 16
@@ -61,10 +62,16 @@ func main() {
 
     if smatch(os.Args[1], "encrypt") {
       if (len(fileList) > 1) && (fileList[0] == "-r") {
-        var err error
+        if strings.HasPrefix(fileList[1], "vlty") {
+          var err error
 
-        if pukey, err = decodeKey(fileList[1]); err != nil || len(pukey) != curve25519.ScalarSize {
-          fmt.Fprintf(os.Stderr, "\033[1;31mError: Invalid Public Key\033[0m\n")
+          if pukey, err = decodeKey(fileList[1][4:]); err != nil || len(pukey) != curve25519.ScalarSize {
+            fmt.Fprintf(os.Stderr, "%s\n", red("Error: Invalid Public Key"))
+            os.Exit(0)
+
+          }
+        } else {
+          fmt.Fprintf(os.Stderr, "%s\n", red("Error: Invalid Public Key"))
           os.Exit(0)
         }
         fileList = fileList[2:]
@@ -73,15 +80,15 @@ func main() {
     } else if smatch(os.Args[1], "decrypt") {
       if (len(fileList) > 1) && (fileList[0] == "-k") {
         if keyfile, err := os.ReadFile(fileList[1]); err == nil {
-          if i := bytes.Index(keyfile, []byte(vaultyPrefix)); i != -1 {
-            prkey = keyfile[i:]
+          if i := bytes.Index(keyfile, []byte(vaultyKeyPrefix)); i != -1 {
+            prkey = bytes.Replace(keyfile[i:], []byte(vaultyKeyPrefix), []byte(vaultyPrefix), 1)
             fileList = fileList[2:]
           } else {
-            fmt.Fprintf(os.Stderr, "\033[1;31mError: Invalid Key File\033[0m\n")
+            fmt.Fprintf(os.Stderr, "%s\n", red("Error: Invalid Key File"))
             os.Exit(0)
           }
         } else {
-          fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Read Key File\033[0m\n")
+          fmt.Fprintf(os.Stderr, "%s\n", red("Error: Unable to Read Key File"))
           os.Exit(0)
         }
       }
@@ -108,29 +115,31 @@ func main() {
                 defer fh.Close()
 
                 if pk, err := encodeKey(public); err == nil {
-                  fmt.Fprintf(fh, "// Public ID: %s\n", pk)
+                  epk = bytes.Replace(epk, []byte(vaultyPrefix), []byte(vaultyKeyPrefix), 1)
+
+                  fmt.Fprintf(fh, "// Public ID: vlty%s\n", pk)
                   fmt.Fprintf(fh, "%s\n", epk)
 
-                  fmt.Fprintf(os.Stdout, "// Public ID: %s\n", pk)
+                  fmt.Fprintf(os.Stdout, "// Public ID: vlty%s\n", pk)
                   fmt.Fprintf(os.Stdout, "%s\n", epk)
 
                 } else {
-                  fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Bech32m Encode Public Key\033[0m\n")
+                  fmt.Fprintf(os.Stderr, "%s\n", red("Error: Unable to Bech32m Encode Public Key"))
                 }
               } else {
-                fmt.Fprintf(os.Stderr, "\033[1;31merror: %v\033[0m\n", err)
+                fmt.Fprintf(os.Stderr, "%s\n", red("error: %v", err))
               }
             } else {
-              fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Encrypt X25519 Private Key\033[0m\n")
+              fmt.Fprintf(os.Stderr, "%s\n", red("Error: Unable to Encrypt X25519 Private Key"))
             }
           } else {
-            fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Generate X25519 Key Pair\033[0m\n")
+            fmt.Fprintf(os.Stderr, "%s\n", red("Error: Unable to Generate X25519 Key Pair"))
           }
         } else {
-          fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password Verification Failed\033[0m\n")
+          fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password Verification Failed"))
         }
       } else {
-        fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password is Mandatory\033[0m\n")
+        fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password is Mandatory"))
       }
     } else {
       if len(fileList) > 0 {
@@ -141,33 +150,33 @@ func main() {
             if password, _ = getPassword("Vaulty Password: "); len(password) > 0 {
               if mO == 1 {
                 if v, err := getPassword("Password Verification: "); password != v || err != nil {
-                  fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password Verification Failed\033[0m\n")
+                  fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password Verification Failed"))
                   os.Exit(0)
                 }
                 fmt.Fprintf(os.Stderr, "\n")
               } else if mO == 4 {
                 if npassword, _ = getPassword("\nNew Vaulty Password: "); len(npassword) > 0 {
                   if v, err := getPassword("Password Verification: "); npassword != v || err != nil {
-                    fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password Verification Failed\033[0m\n")
+                    fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password Verification Failed"))
                     os.Exit(0)
                   }
                   fmt.Fprintf(os.Stderr, "\n")
                 } else {
-                  fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password is Mandatory\033[0m\n")
+                  fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password is Mandatory"))
                   os.Exit(0)
                 }
               } else {
                 fmt.Fprintf(os.Stderr, "\n")
               }
             } else {
-              fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password is Mandatory\033[0m\n")
+              fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password is Mandatory"))
               os.Exit(0)
             }
   
             if len(prkey) > 0 {
               var err error
               if prkey, err = decrypt(prkey, password); err != nil {
-                fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Decrypt Private Key\033[0m\n")
+                fmt.Fprintf(os.Stderr, "%s\n", red("Error: Unable to Decrypt Private Key"))
                 os.Exit(0)
               }
             }
@@ -183,7 +192,7 @@ func main() {
               if _, err := io.Copy(h, fh); err == nil {
                 fmt.Fprintf(os.Stdout, "%x  %s\n", h.Sum(nil), fn)
               } else {
-                fmt.Fprintf(os.Stderr, "\033[1;31merror: %v\033[0m\n", err)
+                fmt.Fprintf(os.Stderr, "%s\n", red("error: %v", err))
               }
             } else {
               if s, err := fh.Stat(); err == nil {
@@ -213,59 +222,83 @@ func main() {
                   if err == nil {
                     fh.Truncate(int64(len(ciphertext)))
                     fh.WriteAt(ciphertext, 0)
-                    fmt.Fprintf(os.Stdout, "\033[1;32mok\033[0m\n")
+                    fmt.Fprintf(os.Stdout, "%s\n", green("ok"))
                     fh.Close()
   
                     if err := os.Rename(fn, fn + ".vlt"); err != nil {
-                      fmt.Fprintf(os.Stderr, "\033[1;31merror: %v\033[0m\n", err)
+                      fmt.Fprintf(os.Stderr, "%s\n", green("error: %v", err))
                     }
                   } else {
-                    fmt.Fprintf(os.Stdout, "\033[1;31mfailed\033[0m\n")
+                    fmt.Fprintf(os.Stdout, "%s\n", red("failed"))
                   }
                 } else if mO == 2 || mO == 4 {
                   var plaintext []byte
                   var err error
 
-                  fmt.Fprintf(os.Stdout, "Decrypting %s... ", fn)
+                  if i := bytes.Index(data, []byte(vaultyKeyPrefix)); i != -1 {
+                    fmt.Fprintf(os.Stdout, "Decrypting Key File %s... ", fn)
 
-                  if len(prkey) > 0 {
-                    plaintext, err = decryptX25519(data, prkey)
-                  } else {
-                    plaintext, err = decrypt(data, password)
-                  }
+                    public := data[:i]
+                    private := bytes.Replace(data[i:], []byte(vaultyKeyPrefix), []byte(vaultyPrefix), 1)
 
-                  if err == nil {
-                    if mO == 4 {
-                      fmt.Fprintf(os.Stdout, "\033[1;32mok\033[0m, Encrypting %s... ", fn)
-                      if ciphertext, err := encrypt(plaintext, npassword, false, 0); err == nil {
-                        fh.Truncate(int64(len(ciphertext)))
-                        fh.WriteAt(ciphertext, 0)
-                        fmt.Fprintf(os.Stdout, "\033[1;32mok\033[0m\n")
+                    if private, err := decrypt(private, password); err == nil {
+                      fmt.Fprintf(os.Stdout, "%s, Encrypting Key File %s... ", green("ok"), fn)
+
+                      if ciphertext, err := encrypt(private, npassword, true, 80); err == nil {
+                        fh.Truncate(0)
+                        fmt.Fprintf(fh, "%s", public)
+                        fmt.Fprintf(fh, "%s\n", bytes.Replace(ciphertext, []byte(vaultyPrefix), []byte(vaultyKeyPrefix), 1))
+                        fmt.Fprintf(os.Stdout, "%s\n", green("ok"))
+
                       } else {
-                        fmt.Fprintf(os.Stdout, "\033[1;31mfailed\033[0m\n")
+                        fmt.Fprintf(os.Stdout, "%s\n", red("failed"))
                       }
                     } else {
-                      fh.Truncate(int64(len(plaintext)))
-                      fh.WriteAt(plaintext, 0)
-                      fmt.Fprintf(os.Stdout, "\033[1;32mok\033[0m\n")
-                      fh.Close()
-  
-                      if strings.HasSuffix(strings.ToLower(fn), ".vlt") {
-                        if err := os.Rename(fn, fn[:len(fn) - 4]); err != nil {
-                          fmt.Fprintf(os.Stderr, "\033[1;31merror: %v\033[0m\n", err)
-                        }
-                      }
+                      fmt.Fprintf(os.Stdout, "%s\n", red("failed (invalid password)"))
                     }
                   } else {
-                    fmt.Fprintf(os.Stdout, "\033[1;31mfailed (invalid password or data not encrypted)\033[0m\n")
+                    fmt.Fprintf(os.Stdout, "Decrypting %s... ", fn)
+  
+                    if len(prkey) > 0 {
+                      plaintext, err = decryptX25519(data, prkey)
+                    } else {
+                      plaintext, err = decrypt(data, password)
+                    }
+  
+                    if err == nil {
+                      if mO == 4 {
+                        fmt.Fprintf(os.Stdout, "%s, Encrypting %s... ", green("ok"), fn)
+
+                        if ciphertext, err := encrypt(plaintext, npassword, false, 0); err == nil {
+                          fh.Truncate(int64(len(ciphertext)))
+                          fh.WriteAt(ciphertext, 0)
+                          fmt.Fprintf(os.Stdout, "%s\n", green("ok"))
+                        } else {
+                          fmt.Fprintf(os.Stdout, "%s\n", red("failed"))
+                        }
+                      } else {
+                        fh.Truncate(int64(len(plaintext)))
+                        fh.WriteAt(plaintext, 0)
+                        fmt.Fprintf(os.Stdout, "%s\n", green("ok"))
+                        fh.Close()
+    
+                        if strings.HasSuffix(strings.ToLower(fn), ".vlt") {
+                          if err := os.Rename(fn, fn[:len(fn) - 4]); err != nil {
+                            fmt.Fprintf(os.Stderr, "%s\n", red("error: %v", err))
+                          }
+                        }
+                      }
+                    } else {
+                      fmt.Fprintf(os.Stdout, "%s\n", red("failed (invalid password or data not encrypted)"))
+                    }
                   }
                 }
               } else {
-                fmt.Fprintf(os.Stderr, "\033[1;31merror: %v\033[0m\n", err)
+                fmt.Fprintf(os.Stderr, "%s\n", red("error: %v", err))
               }
             }
           } else {
-            fmt.Fprintf(os.Stderr, "\033[1;31merror: %v\033[0m\n", err)
+            fmt.Fprintf(os.Stderr, "%s\n", red("error: %v", err))
           }
         }
       } else {
@@ -277,7 +310,7 @@ func main() {
               if ciphertext, err := encryptX25519(stdin, pukey, true, 80); err == nil {
                 fmt.Fprintf(os.Stdout, "%s\n", ciphertext)
               } else {
-                fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Encrypt Data\033[0m\n")
+                fmt.Fprintf(os.Stderr, "%s\n", red("Error: Unable to Encrypt Data"))
               }
             } else {
               if password, _ := getPassword("Vaulty Password: "); len(password) > 0 {
@@ -288,10 +321,10 @@ func main() {
                     if ciphertext, err := encrypt(stdin, password, true, 80); err == nil {
                       fmt.Fprintf(os.Stdout, "%s\n", ciphertext)
                     } else {
-                      fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Encrypt Data\033[0m\n")
+                      fmt.Fprintf(os.Stderr, "%s\n", red("Error: Unable to Encrypt Data"))
                     }
                   } else {
-                    fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password Verification Failed\033[0m\n")
+                    fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password Verification Failed"))
                   }
                 } else if mO == 2 || mO == 4 {
                   if mO == 2 {
@@ -300,7 +333,7 @@ func main() {
                     if len(prkey) > 0 {
                       var err error
                       if prkey, err = decrypt(prkey, password); err != nil {
-                        fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Decrypt Key File\033[0m\n")
+                        fmt.Fprintf(os.Stderr, "%s\n", red("Error: Unable to Decrypt Key File"))
                         os.Exit(0)
                       }
                     }
@@ -323,28 +356,28 @@ func main() {
                           if ciphertext, err := encrypt(plaintext, npassword, true, 80); err == nil {
                             fmt.Fprintf(os.Stdout, "%s\n", ciphertext)
                           } else {
-                            fmt.Fprintf(os.Stderr, "\033[1;31mError: Unable to Re-Encrypt Data\033[0m\n")
+                            fmt.Fprintf(os.Stderr, "%s\n", red("Error: Unable to Re-Encrypt Data"))
                           }
                         } else {
-                          fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password Verification Failed\033[0m\n")
+                          fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password Verification Failed"))
                         }
                       } else {
-                        fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password is Mandatory\033[0m\n")
+                        fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password is Mandatory"))
                       }
                     } else {
                       fmt.Fprintf(os.Stdout, "%s", plaintext)
                     }
                   } else {
-                    fmt.Fprintf(os.Stderr, "\033[1;31mError: Invalid Password or Data Not Encrypted\033[0m\n")
+                    fmt.Fprintf(os.Stderr, "%s\n", red("Error: Invalid Password or Data Not Encrypted"))
                   }
                 }
               } else {
-                fmt.Fprintf(os.Stderr, "\n\033[1;31mError: Password is Mandatory\033[0m\n")
+                fmt.Fprintf(os.Stderr, "\n%s\n", red("Error: Password is Mandatory"))
               }
             }
           }
         } else {
-          fmt.Fprintf(os.Stderr, "\033[1;31merror: %v\033[0m\n", err)
+          fmt.Fprintf(os.Stderr, "%s\n", red("error: %v", err))
         }
       }
     }
@@ -365,6 +398,20 @@ func smatch(a string, b string) bool {
     mlen = len(b)
   }
   return strings.ToLower(a) == strings.ToLower(b)[:mlen]
+}
+
+func red(s string, args ...interface{}) string {
+  if runtime.GOOS != "windows" {
+    return fmt.Sprintf("\033[1;31m" + s + "\033[0m", args...)
+  }
+  return fmt.Sprintf(s, args...)
+}
+
+func green(s string, args ...interface{}) string {
+  if runtime.GOOS != "windows" {
+    return fmt.Sprintf("\033[1;32m" + s + "\033[0m", args...)
+  }
+  return fmt.Sprintf(s, args...)
 }
 
 func getPassword(prompt string) (string, error) {
