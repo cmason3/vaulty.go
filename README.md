@@ -25,7 +25,7 @@ echo "$VAULTY;..." | vaulty decrypt
   Hello World
 ```
 
-#### Usage - Public Key (Asymmetric) Encryption
+#### Usage - Public Key (Asymmetric) Encryption (x25519)
 
 Public key encryption is asymmetric which means Alice no longer needs to share the same password/key with Bob. With asymmetric encryption Alice and Bob both generate a keypair which comprises of a private key and a public key. The private key (as the name suggests) must remain private and is encrypted where the password is never shared. The public key should be given to anyone who wishes to securely communicate with you. There is a lot of complicated maths involved here using Eliptic Curves with [Diffie-Hellman](https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange) that allows two parties to agree on a shared secret without ever exchanging that secret. If Alice wants to share an encrypted file with Bob then she needs to encrypt it using Bob's public key. Bob will then use his private key to decrypt it, as only the paired private key is able to decrypt it. In the opposite direction if Bob wishes to share an encrypted file with Alice then he would encrypt it using Alice's public key.
 
