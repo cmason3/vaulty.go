@@ -36,7 +36,7 @@ import (
   "golang.org/x/crypto/chacha20poly1305"
 )
 
-var Version = "2.0.0"
+var Version = "2.0.1"
 
 const (
   vaultyPrefix = "$VAULTY;"
@@ -238,7 +238,7 @@ func main() {
                   if i := bytes.Index(data, []byte(vaultyKeyPrefix)); i != -1 {
                     fmt.Fprintf(os.Stdout, "Decrypting Key File %s... ", fn)
 
-                    public := data[:i]
+                    public := string(data[:i])
                     private := bytes.Replace(data[i:], []byte(vaultyKeyPrefix), []byte(vaultyPrefix), 1)
 
                     if private, err := decrypt(private, password); err == nil {
@@ -246,6 +246,7 @@ func main() {
 
                       if ciphertext, err := encrypt(private, npassword, true, 80); err == nil {
                         fh.Truncate(0)
+                        fh.Seek(0, io.SeekStart)
                         fmt.Fprintf(fh, "%s", public)
                         fmt.Fprintf(fh, "%s\n", bytes.Replace(ciphertext, []byte(vaultyPrefix), []byte(vaultyKeyPrefix), 1))
                         fmt.Fprintf(os.Stdout, "%s\n", green("ok"))
